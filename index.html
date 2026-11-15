@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Happy to Chat: shopping list</title>
+<style>
+  :root { --bg:#f6f5f1; --card:#fff; --ink:#1d2327; --muted:#6a7077; --line:#e3e1da; --accent:#2f6f4f; --warn:#a4491b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16191b; --card:#1f2326; --ink:#e8eaeb; --muted:#9aa1a6; --line:#2e3438; --accent:#6cc79a; --warn:#e59a6c; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); padding-bottom:5rem; }
+  header { position:sticky; top:0; z-index:5; background:var(--bg); padding:.75rem 1rem .5rem; border-bottom:1px solid var(--line); }
+  h1 { font-size:1.15rem; margin:0 0 .25rem; }
+  .sub { color:var(--muted); font-size:.85rem; }
+  .bar { height:6px; background:var(--line); border-radius:3px; margin:.5rem 0 .25rem; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:var(--accent); transition:width .2s; }
+  .tools { display:flex; gap:.5rem; margin-top:.4rem; }
+  button { font:inherit; font-size:.85rem; padding:.35rem .7rem; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  main { max-width:44rem; margin:0 auto; padding:0 .75rem; }
+  section { margin-top:1.25rem; }
+  section h2 { font-size:1rem; margin:0 0 .15rem .25rem; display:flex; justify-content:space-between; align-items:baseline; }
+  section h2 small { color:var(--muted); font-weight:400; font-size:.8rem; }
+  .where { color:var(--muted); font-size:.8rem; margin:0 0 .5rem .25rem; }
+  ul { list-style:none; margin:0; padding:0; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  li { border-top:1px solid var(--line); }
+  li:first-child { border-top:0; }
+  label { display:flex; gap:.7rem; align-items:center; padding:.6rem .7rem; cursor:pointer; }
+  input[type=checkbox] { width:1.5rem; height:1.5rem; flex:none; accent-color:var(--accent); }
+  .thumb { width:56px; height:56px; flex:none; border-radius:8px; background:#fff; object-fit:contain; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:1.6rem; }
+  .txt { flex:1; min-width:0; }
+  .name { font-weight:600; }
+  .meta { color:var(--muted); font-size:.82rem; }
+  .price { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; font-size:.9rem; }
+  .qty { display:inline-block; background:var(--accent); color:#fff; border-radius:6px; padding:0 .4rem; font-size:.8rem; margin-right:.3rem; }
+  .note { padding:0 .7rem .6rem 3.9rem; font-size:.82rem; color:var(--muted); }
+  .note a { color:var(--accent); }
+  .warn { color:var(--warn); }
+  li.done .name, li.done .price { text-decoration:line-through; color:var(--muted); }
+  li.done .thumb { opacity:.45; }
+  footer { max-width:44rem; margin:1.5rem auto 0; padding:0 1rem; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Happy to Chat: shopping list</h1>
+  <div class="sub"><span id="count">0 of 0</span> ticked · left to buy <b id="left">$0</b></div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="tools"><button id="hide">Hide ticked</button><button id="reset">Untick all</button></div>
+</header>
+<main id="app"></main>
+<footer>
+  Prices are NZD, GST inclusive, from listings on 24 Oct 2026: check price and stock in store. Ticks are saved on this phone only.
+  The plywood (CNC, Proffer) and the Hettich hinges (already bought) are not on this list.
+</footer>
+
+<script>
+const B = 'https://media.bunnings.com.au/api/public/content/';
+const bunnings = 'Bunnings Lyall Bay · 22-54 Kingsford Smith St, Rongotai · 04 387 5800';
+const STORES = [
+  { id:'bunnings', name:'Bunnings Lyall Bay', where:bunnings, items:[
+    { n:'H4 sawn fence post 100 × 100 × 1.8 m', q:2, p:22.96, i:B+'de3a528c0b734055a3e3b63905d46fe5?v=9b9b92ff&t=w1200', u:'https://www.bunnings.co.nz/100-x-100mm-1-8m-timber-fence-post-1800mm_p0308625', t:'Straight, no splits. Bevel the tops after buying.' },
+    { n:'PSP 3 mm clear acrylic, 900 × 600', q:1, p:43.40, i:B+'1d7030f5b7fb410e8c245c1e02b83847?v=233f8600&t=w1200', u:'https://www.bunnings.co.nz/psp-900-x-600-x-3mm-clear-acrylic-panel-900mm_p0303654', t:'Leave the film on.' },
+    { n:'Moroday EPDM weatherseal, black, 9 mm × 5 m', q:1, p:9.86, i:B+'ba058d822615458eb8f8f495088a4843?v=1a3456e3&t=w1200', u:'https://www.bunnings.co.nz/moroday-self-adhesive-special-weatherseal-9mmx5m-black_p0127884', t:'Check the profile against the 3 to 5 mm door gaps.' },
+    { n:'Cemix Super Strength Fastcrete 20 kg', q:9, p:16.29, i:B+'afbde6c0af984c13bb89e212c2727686?v=917b1ea6&t=w1200', u:'https://www.bunnings.co.nz/cemix-20kg-super-strength-fastcrete_p0341405', t:'7 may do with the gravel layer.' },
+    { n:'Daltons 12 to 25 mm coarse gold stone, 15 L', q:1, p:9.99, i:B+'78d3b330de57428ea1940446863e73ec?v=547f141c&t=w1200', u:'https://www.bunnings.co.nz/daltons-15l-12-25mm-coarse-gold-stone_p0404146', t:'<span class="warn">Special order</span>: order ahead.' },
+    { n:'Bondall Monocel In Ground Wood Protector, 1 L', q:1, p:26.45, i:B+'2596b01b9290455eb12dc688658e63ac?v=7adebe30&t=w1200', u:'https://www.bunnings.co.nz/bondall-1l-monocel-in-ground-wood-protector_p0039110', t:'Buried post ends. Let it dry fully before concreting.' },
+    { n:'T-Rex butyl waterproofing tape, 50 mm × 1.5 m', q:1, p:23.75, e:'🩹', u:'https://www.bunnings.co.nz/search/products?q=t-rex%20butyl%20waterproofing%20tape%2050mm', t:'Post gaskets. Check the thickness: the gasket should be about 3 mm.' },
+    { n:'Taskmaster 30 mm matte black square knob', q:2, p:8.14, i:B+'81b13b4b26334683b0ff2edf9bf1b00d?v=f33c309a&t=w1200', u:'https://www.bunnings.co.nz/taskmaster-30mm-matte-black-square-cabinet-knob-1-pack_p0164900', t:'Painted steel, may mark in coastal spray.' },
+    { n:'Zenith 50 mm 316 angle bracket, 4 pack', q:1, p:17.30, i:B+'7c49f2eabb50400695336cc919e3cc27?v=f06c0931&t=w1200', u:'https://www.bunnings.co.nz/zenith-50mm-stainless-steel-angle-bracket-4-pack_p3961883', t:'Front sign: two used, two spare.' },
+    { n:'Norski Epoxy Timber Sealer, 1 L two-part kit', q:2, p:82.25, i:B+'cb96b995e36e407ebe9cbd96d0601f4f?v=f508ac51&t=w1200', u:'https://www.bunnings.co.nz/norski-epoxy-timber-sealer-1l_p0277212', t:'Kit includes the hardener.' },
+    { n:'Norski marine varnish, gloss, 4 L', q:1, p:91.64, i:B+'eebb26aab5e4443ba792abbad06d93aa?v=72b4718f&t=w1200', u:'https://www.bunnings.co.nz/norski-4l-gloss-polyurethane-varnish_p0288520', t:'Two 1 L satin cans ($84.28) would do. UV resistance is not stated.' },
+    { n:'Zenith 10G × 75 mm 316 countersunk screws, 10 pack', q:7, p:17.95, i:B+'92e5e0f9ed7240c1b5affc3f4f285339?v=74806ad6&t=w1200', u:'https://www.bunnings.co.nz/zenith-10g-x-75mm-316-stainless-steel-countersunk-head-timber-screws-10-pack_p0271466', t:'About 70 screws in all.' },
+    { n:'Oxbuild M10 × 1 m 316 threaded rod', q:1, p:18.23, e:'🔩', u:'https://www.bunnings.co.nz/search/products?q=oxbuild%20m10%20316%20threaded%20rod', t:'Cut into four bolts of about 145 mm.' },
+    { n:'Zenith M10 316 hex nut', q:8, p:1.32, e:'🔩', u:'https://www.bunnings.co.nz/search/products?q=zenith%20m10%20316%20hex%20nut', t:'Two per bolt.' },
+    { n:'Neutral-cure, acrylic-safe sealant (for the glazing bead)', q:1, p:21.80, e:'🧴', t:'<span class="warn">Not Selleys Marine Sealant:</span> it is an acid-cure silicone, which can craze acrylic. The price is that tin\'s, as a stand-in; choose one that says it is safe on acrylic.' },
+    { n:'Ask in store: large M10 316 washers, door stay', q:1, p:0, e:'❓', t:'Not on the Bunnings site. Not priced.' }
+  ]},
+  { id:'mitre10', name:'Mitre 10', where:'Only if Bunnings can\'t supply it', items:[
+    { n:'Large M10 316 washers (8) and 60 × 60 × 3 mm stainless plates (4)', q:1, p:0, e:'⬜', t:'For the post backing plates. Ask at the trade counter, or try a fastener or stainless supplier. Not priced.' }
+  ]},
+  { id:'other', name:'Elsewhere', where:'Online or special trips', items:[
+    { n:'316 stainless door catch, 93.5 × 39 mm (YDG098)', q:1, p:11.99, e:'🔒', u:'https://www.marine-deals.co.nz/lock-ydg098', t:'Marine Deals, 0800 633 257. Listed as a barrel bolt: ask if a keeper comes with it. Plus shipping. Fallback: Bunnings Zenith 316 hasp and staple, 90 mm, $30.83.' },
+    { n:'Lid flashing, 5052-H32 aluminium, 1200 × 1400 cut', q:1, p:194.35, e:'🧱', t:'SD Aluminium, 1.6 mm. Plus freight from Auckland. Or ask Steel &amp; Tube (0800 478 335) for a thinner cut piece.' },
+    { n:'Stainless insect mesh, about 3 mm aperture', q:1, p:25.00, e:'🕸️', t:'Estimate. Not at Bunnings. Check the grade.' },
+    { n:'Printed 300 × 300 mm signs (UV-printed ACM)', q:2, p:70.00, e:'🪧', t:'Estimate. Wellington sign maker; ask about the fade warranty.' },
+    { n:'Back-sign stainless stand-offs', q:4, p:0, e:'❓', t:'In the model, not on the BOM. Decide where they come from. Not priced.' }
+  ]},
+  { id:'small', name:'Small items and tools', where:'Any hardware store, if you do not have them', items:[
+    { n:'25 × 25 mm pine strip, for shelf cleats', q:1, p:0, e:'📏', t:'Or ply offcuts. Not priced.' },
+    { n:'Aluminium pop rivets', q:1, p:0, e:'📌', t:'For the flashing laps. Not priced.' },
+    { n:'35 mm Forstner bit with depth stop', q:1, p:0, e:'🛠️', t:'Hinge cup pockets, 11.5 mm deep. Test on an offcut.' },
+    { n:'Aviation snips (left and right), hand seamer', q:1, p:0, e:'✂️', t:'Only if you fold the flashing yourself. About $25 each and $30.' },
+    { n:'Epoxy kit: brushes, gloves, respirator, mixing pots', q:1, p:0, e:'🧤', t:'' }
+  ]}
+];
+
+const KEY = 'htc-shopping-v1';
+let state = {}; try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+let hideDone = !!state.__hide;
+const money = v => '$' + v.toFixed(2).replace(/\.00$/, '');
+const app = document.getElementById('app');
+
+function render() {
+  let total = 0, ticked = 0, left = 0;
+  app.innerHTML = '';
+  for (const s of STORES) {
+    const sec = document.createElement('section');
+    let sub = 0;
+    const ul = document.createElement('ul');
+    s.items.forEach((it, idx) => {
+      const id = s.id + ':' + idx;
+      const cost = it.q * it.p;
+      const done = !!state[id];
+      total++; if (done) ticked++; else left += cost; sub += cost;
+      if (done && hideDone) return;
+      const li = document.createElement('li');
+      if (done) li.className = 'done';
+      const thumb = it.i
+        ? `<img class="thumb" loading="lazy" referrerpolicy="no-referrer" src="${it.i}" alt="" onerror="this.outerHTML='<div class=&quot;thumb&quot;>📦</div>'">`
+        : `<div class="thumb">${it.e || '📦'}</div>`;
+      li.innerHTML = `<label><input type="checkbox" data-id="${id}" ${done ? 'checked' : ''}>${thumb}
+        <span class="txt"><span class="name">${it.n}</span><br><span class="meta"><span class="qty">× ${it.q}</span>${it.p ? money(it.p) + ' each' : 'not priced'}</span></span>
+        <span class="price">${it.p ? money(cost) : ''}</span></label>
+        ${(it.t || it.u) ? `<div class="note">${it.t || ''} ${it.u ? `<a href="${it.u}" target="_blank" rel="noopener">product page</a>` : ''}</div>` : ''}`;
+      ul.appendChild(li);
+    });
+    sec.innerHTML = `<h2>${s.name}<small>${money(sub)}</small></h2><p class="where">${s.where}</p>`;
+    sec.appendChild(ul);
+    app.appendChild(sec);
+  }
+  document.getElementById('count').textContent = `${ticked} of ${total}`;
+  document.getElementById('left').textContent = money(left);
+  document.getElementById('bar').style.width = (total ? ticked / total * 100 : 0) + '%';
+  document.getElementById('hide').textContent = hideDone ? 'Show ticked' : 'Hide ticked';
+}
+const save = () => { state.__hide = hideDone; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+app.addEventListener('change', e => {
+  const id = e.target.dataset && e.target.dataset.id; if (!id) return;
+  if (e.target.checked) state[id] = 1; else delete state[id];
+  save(); render();
+});
+document.getElementById('hide').onclick = () => { hideDone = !hideDone; save(); render(); };
+document.getElementById('reset').onclick = () => { if (confirm('Untick everything?')) { state = {}; hideDone = false; save(); render(); } };
+render();
+</script>
+</body>
+</html>
